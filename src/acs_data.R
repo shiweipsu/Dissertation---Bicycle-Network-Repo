@@ -1,11 +1,10 @@
-library(readxl)
-library(stringr)
-library(tidyverse)
-library(ggplot2)
+if(!require("pcacman")){install.packages("pacman"); library(pacman)}
+p_load(readxl, stringr, tidyr, dplyr, ggplot)
 
-acs_bike_big <- read_excel("ACS/supplemental-table3 (1).xlsx", skip = 5) %>% mutate(type="Big")
-acs_bike_median <- read_excel("ACS/supplemental-table2 (1).xlsx", skip = 5) %>% mutate(type="Mid")
-acs_bike_small <- read_excel("ACS/supplemental-table1 (1).xlsx", skip = 5) %>% mutate(type="Small")
+
+acs_bike_big <- read_excel("Data/ACS/supplemental-table3 (1).xlsx", skip = 5) %>% mutate(type="Big")
+acs_bike_median <- read_excel("Data/ACS/supplemental-table2 (1).xlsx", skip = 5) %>% mutate(type="Mid")
+acs_bike_small <- read_excel("Data/ACS/supplemental-table1 (1).xlsx", skip = 5) %>% mutate(type="Small")
 
 acs_bike <- rbind(acs_bike_big, acs_bike_median, acs_bike_small)
 colnames(acs_bike) <- c("city", "bicycle_number", "bicycle_perc","margin_error","type")
@@ -22,11 +21,11 @@ acs_bike_30 <- acs_bike %>%
   mutate(City = paste(city, state, sep=", "))
 
 acs_bike_big <- acs_bike %>% filter(type=="Big") %>% 
-  arrange(desc(bicycle_perc)) %>% slice(1:20) %>% 
+  arrange(desc(bicycle_perc)) %>% slice(1:30) %>% 
   mutate(City = paste(city, state, sep=", "))
 
 acs_bike_mid <-  acs_bike %>% filter(type=="Mid") %>% 
-  arrange(desc(bicycle_perc)) %>% slice(1:20) %>% 
+  arrange(desc(bicycle_perc)) %>% slice(1:30) %>% 
   mutate(City = paste(city, state, sep=", "))
 
 acs_bike_sm <- acs_bike %>% filter(type=="Small") %>% 
