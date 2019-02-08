@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # load data
 
 if(!require("pacman")){install.packages("pacman"); library(pacman)}
@@ -26,12 +25,7 @@ table(meta[meta$year<=2017,]$name)
 
 table(meta_seg[meta_seg$year<=2012,]$name) 
 table(meta_seg[meta_seg$year<=2017,]$name) 
-=======
-if(!require(pacman)){install.packages("pacman");library(pacman)}
-p_load(dplyr)
 
-meta <- read.csv("Data/bike count/bike_metadata.csv")
-count <- read.csv("Data/bike count/bike_count_data.csv")
 
 # find how many flow_detector_id each city has
 meta %>% mutate(year = substr(as.character(start_time),1,4)) %>% 
@@ -56,4 +50,3 @@ pdx_counter_end <- meta_count %>% filter(name=="Multnomah") %>%
   group_by(name,year_end,make) %>% 
   summarise(n_end=n())
 
->>>>>>> 7770229a6ba9eb37b3ed420a318561bd2ec3e32c
