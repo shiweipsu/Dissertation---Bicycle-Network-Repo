@@ -4,7 +4,7 @@ library(dplyr)
 # read hh data
 hh <- read.csv("NHTS/2017/hhpub.csv")
 person <- read.csv("NHTS/2017/perpub.csv")
-trip <- read.csv("NHTS/2017/trippub.csv")
+trip <- read.csv("Data/travel survey/NHTS/2017/trippub.csv")
 
 trip_hh <- left_join(trip, hh, by="HOUSEID")
 
@@ -41,6 +41,11 @@ round(prop.table(sft, 2),3)
 sd <- trip %>% filter(HH_CBSA==41740)
 table(sd$TRPTRANS)
 sdt <- xtabs(~TRPTRANS+TRIPPURP, data=sd)
+round(prop.table(sdt, 2),3)
+
+la <- trip %>% filter(HH_CBSA==31080)
+table(la$TRPTRANS)
+sdt <- xtabs(~TRPTRANS+TRIPPURP, data=la)
 round(prop.table(sdt, 2),3)
 
 dalas <-trip %>% filter(HH_CBSA==19100)
