@@ -1,5 +1,5 @@
 library(pacman)
-p_load(foreign,dplyr)
+p_load(foreign, dplyr, tidyr)
 
 # prepare data
 ## intersect 05 mile service area with census tract, and manipulate proportion of service area by census tract
@@ -60,3 +60,62 @@ fac_ACS <- left_join(merge_count_by_tract, ACS_17) %>%
 count_ACS <- count %>% 
   select(FacilityID, X2011, X2017) %>% 
   merge(fac_ACS)
+
+# edge_buff05 intsct
+intsct <- read.dbf("src/data/edge_buff05_intsct.dbf")
+intsct_sevnolts <- intsct %>% 
+  mutate(LTS = ifelse(service %in% c("drive-through", "driveway","driveway;parking_aisle","parking","parking_aisle"),0,LTS))
+
+LTS <- intsct_sevnolts %>% 
+  group_by(FacilityID, LTS) %>% 
+  summarise(length=sum(as.numeric(as.character(length)))) %>% 
+  ungroup() %>% 
+  spread(LTS,length) 
+colnames(LTS) <- c("FacilityID", "LTS0", "LTS1", "LTS2", "LTS3", "LTS4")
+
+LTS <- LTS %>% 
+  mutate(link = rowSums(LTS[,c("LTS1", "LTS2", "LTS3", "LTS4")], na.rm=TRUE),
+         low_link = rowSums(LTS[,c("LTS1", "LTS2")], na.rm=TRUE),
+         high_link = rowSums(LTS[,c("LTS3", "LTS4")], na.rm=TRUE),
+         low_perc = low_link/link,
+         high_perc = high_link/link)
+
+# count_edge intsec
+count_edge <- read.dbf("src/data/count_edge_intsct.dbf")
+count_edge <- count_edge %>% group_by(Id) %>% 
+  summarise( n=n(),LTS_avg = mean(LTS), LTS_high=sum(LTS>2)/n)
+count <- left_join(count, count_edge[c("Id","LTS_avg","LTS_high")], by="Id")
+
+# read UNA result
+una <- read.dbf("src/data/UNA_result_Featureclass.dbf") %>% mutate(FacilityID = seq(1,143)) %>% 
+  select(FacilityID, Betweennes, Straightne, Closeness)
+
+# get number of nodes within each buffer zone
+node <- read.dbf("src/data/censustrt_05mi_nodecount.dbf") %>% 
+  group_by(FacilityID) %>% summarise(count = sum(Join_Count))
+
+# clean crime data
+crime <- read.csv("src/data/crime_portland.csv") %>% filter(Neighborhood!="") %>% 
+  mutate(year_char = as.character(Occur.Date),
+         year = substr(year_char, nchar(year_char)-3, nchar(year_char))) %>% 
+  filter(year==2017) %>% group_by(Neighborhood) %>% summarise(n=n()) %>% 
+  mutate(Neighborhood = toupper(Neighborhood))
+# nbo <- read.dbf("src/data/Neighborhoods_pdx.dbf") %>% 
+  # left_join(crime, by=c("NAME"="Neighborhood")) %>% select(-starts_with("mfh"), -starts_with("sfh")) 
+# write.dbf(nbo, "src/data/Neighborhoods_pdx.dbf")
+count_crime <- read.dbf("src/data/nbo_count_intsct.dbf")
+count <- left_join(count, count_crime[,c("Id","n")], by="Id")
+
+
+all <- Reduce(function(x,y) merge(x,y,by="FacilityID",all=TRUE) ,list(count[,c("FacilityID","n","LTS_avg","LTS_high")],
+                                                                      count_ACS, LTS, una, node))%>% 
+  mutate(pop_den = tot_pop/Area_05mi, noveh_perc = no_veh/hh, elder_perc = elder/tot_pop, male_perc = male/tot_pop,
+         white_perc = white/tot_pop, col1 = col_24/pop_24, col2 = col_25/pop_25)
+data <- na.omit(all)
+model <- glm.nb(X2017~Betweennes + Closeness + pop_den + noveh_perc + elder_perc + white_perc + col1 + col2
+            + median_inc +  LTS_avg + low_perc + Area_05mi + n, data=data)
+model <- glm.nb(X2017~ Closeness + pop_den + col1 + LTS_avg + low_perc, data=data)
+summary(model)
+library(MASS)
+summary(stepAIC(model))
+
